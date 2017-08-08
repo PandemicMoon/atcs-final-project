@@ -1,6 +1,37 @@
-<h1>{{title}}</h1>
-<p>Welcome to {{title}}</p>
+<div id="app" class="container homepage" style="width: 100%">
+  <div>
+    <div class="card">
+      <div class="card-block">
+        <h1 class="display-1">Choose A Room</h1>
+        <div class="input-group input-group-lg">
+          <input v-on:keydown.enter="redirect" data-emoji-input="unicode" data-emojiable="true" v-model="roomName" type="text" id="room" class="form-control input-lg" placeholder="Room Name">
+          <span class="input-group-btn">
+            <button v-on:click="redirect" class="btn btn-primary btn-lg" type="submit">Go</button>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
 <script src="/js/vendor/socket.io.js"></script>
+<script src="/js/vendor/vue.js"></script>
 <script>
   var socket = io();
+  var app = new Vue({
+    el: '#app',
+    data: {
+      roomName: ""
+    },
+    methods: {
+      redirect: function () {
+        if (this.roomName !== "")
+        {
+          window.location = '{{url}}' + '/chat/' + encodeURI(this.roomName.toLowerCase());
+        }
+      }
+    }
+  });
 </script>

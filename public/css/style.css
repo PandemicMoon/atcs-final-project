@@ -1,0 +1,78 @@
+.chat-message
+{
+  padding: 10px 5px;
+}
+
+.chat-message .card-block
+{
+  padding: .75rem 1.25rem;
+}
+
+.chat-message .card-inverse p
+{
+  text-align: right;
+  color: #fff;
+}
+
+.card-inverse p.text-muted
+{
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+
+.chat-message.own-message p
+{
+  text-align: right;
+}
+
+.chat-message p
+{
+  padding: 0;
+  margin: 0;
+}
+
+#app
+{
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.footer
+{
+  padding: 10px 10px 10px 10px;
+  background: #f8f8f8;
+  margin-right: 0px;
+  width: 100%;
+  bottom: 0;
+  position: fixed;
+}
+
+/* to remove the top and left whitespace */
+html, body
+{
+  height: 100%;
+  margin:0;
+  padding:0;
+}
+
+body {
+  margin: 0;
+}
+
+.chat-messages {
+  margin-bottom: 71px;
+}
+
+.container.homepage
+{
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.index {
+  background-color: #1B9AAA;
+}

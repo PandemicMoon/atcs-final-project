@@ -27,7 +27,6 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', routes);
-app.use('/users', users);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next)
@@ -84,15 +83,49 @@ var server = http.createServer(app);
  * Create Socket server.
  */
 
+var clients = new Map();
+var rooms = new Map();
+
+function Client(room, name, id)
+{
+  this.room = room;
+  this.name = name;
+  this.id = id;
+}
+
+function ChatMessage(date, sender, text)
+{
+  this.date = date;
+  this.sender = sender;
+  this.text = text;
+}
+
 var io = require('socket.io')(server);
 
 io.on('connection', function(client)
 {
-    console.log('Client ' + client.id + ' connected!');
-    client.on('disconnect', function()
+  client.on('disconnect', function()
+  {
+    clients.delete(client);
+  });
+
+  client.on('newMessage', function(message)
+  {
+    var room = clients.get(client).room;
+    var chatMessage = new ChatMessage(new Date(), { name: clients.get(client).name, id: clients.get(client).id }, message);
+    rooms.get(room).push(chatMessage);
+    io.in(room).emit('newMessage', chatMessage);
+  });
+
+  client.emit('getValues', function(room, name, id) {
+    client.join(room);
+    clients.set(client, new Client(room, name, id));
+    if (!rooms.has(room))
     {
-        console.log('Client ' + client.id + ' disconnected!');
-    });
+      rooms.set(room, []);
+    }
+    client.emit('loadMessages', rooms.get(room));
+  });
 });
 
 /**

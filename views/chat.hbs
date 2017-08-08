@@ -1,0 +1,236 @@
+<div id="app" class="container">
+  <div class="chat-messages" v-chat-scroll="{always: true}" v-if="messages.length != 0">
+    <div class="chat-message" v-for="(message, index) in messages" v-bind:class="{ 'own-message': isOwnID(message.sender.id) }">
+      <p v-if="index == 0 || messages[index-1].sender.id !== message.sender.id">\{{message.sender.name}}</p>
+      <div class="card" v-bind:class="[{ 'card-inverse': isOwnID(message.sender.id) }, { 'card-primary': isOwnID(message.sender.id) }]">
+        <div class="card-block">
+          <p>\{{formatMessage(message.text)}}</p>
+          <p class="text-muted" style="font-size: .75em;">\{{toRelativeDate(message.date)}}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <div v-if="messages.length === 0">
+      <p class="text-muted">Send a message to start chatting.</p>
+    </div>
+    <div class="row textbox">
+     <div class="col-lg-12">
+       <div class="input-group input-group-lg">
+          <input v-on:keydown.enter="sendMessage" data-emoji-input="unicode" data-emojiable="true" v-model="textBox" type="text" id="message" class="form-control input-lg" placeholder="Message">
+          <span class="input-group-btn">
+            <button v-on:click="sendMessage" class="btn btn-primary btn-lg" type="submit">Send</button>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
+<script src="/js/vendor/socket.io.js"></script>
+<script src="/js/vendor/vue.js"></script>
+<script src="/js/vendor/moment.js"></script>
+<script src="/js/vendor/sweetalert.min.js"></script>
+<script src="/js/vendor/emoji.js"></script>
+<script src="/js/vendor/vue-chat-scroll.js"></script>
+<script>
+  function getSearchParameters() {
+      var prmstr = window.location.search.substr(1);
+      return prmstr != null && prmstr != "" ? transformToAssocArray(prmstr) : {};
+  }
+
+  function transformToAssocArray( prmstr ) {
+    var params = {};
+    var prmarr = prmstr.split("&");
+    for ( var i = 0; i < prmarr.length; i++) {
+        var tmparr = prmarr[i].split("=");
+        params[tmparr[0]] = tmparr[1];
+    }
+    return params;
+  }
+
+  function createCookie(name,value,days) {
+    var expires = "";
+    if (days) {
+        var date = new Date();
+        date.setTime(date.getTime() + (days*24*60*60*1000));
+        expires = "; expires=" + date.toUTCString();
+    }
+    document.cookie = name + "=" + value + expires + "; path=/";
+  }
+
+  function getCookie(name) {
+    var nameEQ = name + "=";
+    var ca = document.cookie.split(';');
+    for(var i=0;i < ca.length;i++) {
+        var c = ca[i];
+        while (c.charAt(0)==' ') c = c.substring(1,c.length);
+        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+    }
+    return null;
+  }
+
+  function deleteCookie(name) {
+    createCookie(name,"",-1);
+  }
+
+  function reset() {
+    deleteCookie('chatID');
+    deleteCookie('name');
+  }
+
+  var params = getSearchParameters();
+
+  var emoji = new EmojiConvertor();
+  emoji.init_env();
+  emoji.replace_mode = 'unified';
+  emoji.allow_native = true;
+
+  var socket = io();
+  var app = new Vue({
+    el: '#app',
+    data: {
+      messages: [],
+      textBox: ""
+    },
+    methods: {
+      sendMessage: function () {
+        if (this.textBox !== "")
+        {
+          socket.emit('newMessage', this.textBox);
+          this.textBox = "";
+        }
+      },
+      toRelativeDate: function (date) {
+        return moment(date).fromNow();
+      },
+      formatMessage: function (message) {
+        return emoji.replace_colons(emoji.replace_emoticons_with_colons(message));
+      },
+      isOwnID: function (id) {
+        return id === getCookie('chatID');
+      }
+    }
+  });
+
+  function scrollDown()
+  {
+    app.$nextTick(function() {
+      window.scrollTo(0,document.body.scrollHeight)
+    });
+  }
+
+  function getName(callback)
+  {
+    if (!getCookie('name'))
+    {
+      swal({
+        title: "What's Your Name?",
+        type: "input",
+        showCancelButton: false,
+        closeOnConfirm: false,
+        animation: "slide-from-top",
+        inputPlaceholder: "John Doe",
+      },
+      function(inputValue)
+      {
+        if (inputValue === "")
+        {
+          swal.showInputError("Please enter your name.");
+          return false;
+        }
+
+        createCookie('name', inputValue, 365);
+        swal("Nice!", "Your name is now " + inputValue, "success");
+        callback(inputValue);
+      });
+    }
+    else
+    {
+      callback(getCookie('name'));
+    }
+  }
+
+  function getID()
+  {
+    if (!getCookie('chatID'))
+    {
+      var guid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+        return v.toString(16);
+      });
+      createCookie('chatID', guid, 365);
+      return guid;
+    }
+    else
+    {
+      return getCookie('chatID');
+    }
+  }
+
+  socket.on('newMessage', function(message)
+  {
+    app.messages.push(message);
+    scrollDown();
+  });
+
+  socket.on('getValues', function(fn)
+  {
+    getName(function(name) { fn('{{chatId}}', name, getID()); });
+  });
+
+  socket.on('getName', function(fn)
+  {
+    fn(params.name);
+  });
+
+  socket.on('loadMessages', function(messages)
+  {
+    for (var index in messages)
+    {
+      app.messages.push(messages[index]);
+    }
+    scrollDown();
+  });
+
+  var idleTime = 0;
+  $(document).ready(function () {
+      //Increment the idle time counter every minute.
+      var idleInterval = setInterval(timerIncrement, 60000); // 1 minute
+
+      //Zero the idle timer on mouse movement.
+      $(this).mousemove(function (e) {
+          idleTime = 0;
+      });
+      $(this).keypress(function (e) {
+          idleTime = 0;
+      });
+  });
+
+  function timerIncrement() {
+      idleTime = idleTime + 1;
+      if (idleTime > 3) { // 3 minutes
+        swal({
+          title: "Inactivity Detected",
+          text: "Do you wish to reset your identity? Do this if you just got here or are leaving.",
+          type: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#DD6B55",
+          confirmButtonText: "Yes",
+          cancelButtonText: "No",
+          closeOnConfirm: false,
+          closeOnCancel: false
+        },
+        function(isConfirm){
+          if (isConfirm) {
+            reset();
+            swal({ title: "Identity Reset", text: "Your identity has been reset.", type: "success" }, function() { window.location.reload(false); });
+          } else {
+            swal("Cancelled", "Your identity is safe. You are still " + getCookie('name') + ".", "error");
+          }
+        });
+      }
+  }
+</script>
